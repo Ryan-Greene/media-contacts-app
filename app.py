@@ -26,9 +26,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── App header with logo ─────────────────────────────────────────────────────
-col1, col2 = st.columns([1, 8])
+col1, col2 = st.columns([2, 8])
 with col1:
-    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/boulder%20logo.png", width=80)
+    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png", width=180)
 with col2:
     st.title("Boulder")
     st.caption("C&P Communications · Media Database")
