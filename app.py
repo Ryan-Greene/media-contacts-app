@@ -16,7 +16,6 @@ st.markdown("""
         .stTabs [data-baseweb="tab"] {
             font-family: 'Calibri', sans-serif !important;
         }
-        /* Hide sidebar and the toggle arrow completely */
         [data-testid="stSidebar"] {
             display: none;
         }
@@ -29,7 +28,7 @@ st.markdown("""
 # ── App header with logo ─────────────────────────────────────────────────────
 col1, col2 = st.columns([1, 8])
 with col1:
-    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/logo.png", width=80)
+    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/boulder%20logo.png", width=80)
 with col2:
     st.title("Boulder")
     st.caption("C&P Communications · Media Database")
