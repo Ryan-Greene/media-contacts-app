@@ -69,7 +69,7 @@ def show():
         for c in sorted(filtered, key=lambda x: (x.get("Outlet") or "").lower()):
             rows.append({col: c.get(col, "") or "" for col in DISPLAY_COLS})
         df_show = pd.DataFrame(rows)
-        st.dataframe(df_show, use_container_width=True, hide_index=True,
+        st.dataframe(df_show, use_container_width=True, hide_index=True, height=600,
                      column_config={
                          "Email": st.column_config.LinkColumn("Email", display_text="✉️ Email"),
                      })
