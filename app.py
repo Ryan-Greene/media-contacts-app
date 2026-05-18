@@ -16,14 +16,20 @@ st.markdown("""
         .stTabs [data-baseweb="tab"] {
             font-family: 'Times New Roman', Times, serif !important;
         }
+        /* Hide sidebar and the toggle arrow completely */
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        [data-testid="collapsedControl"] {
+            display: none;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar branding only ────────────────────────────────────────────────────
-st.sidebar.image("https://img.icons8.com/fluency/96/news.png", width=60)
-st.sidebar.title("Boulder")
-st.sidebar.markdown("---")
-st.sidebar.caption("C&P Communications · Media Database")
+# ── App title ────────────────────────────────────────────────────────────────
+st.title("🪨 Boulder")
+st.caption("C&P Communications · Media Database")
+st.markdown("---")
 
 # ── Top tab navigation ───────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
