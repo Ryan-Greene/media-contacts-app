@@ -1,42 +1,55 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="C&P Media Contacts",
-    page_icon="📋",
+    page_title="Boulder",
+    page_icon="🪨",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-from utils.airtable import get_all_contacts
+# ── Custom CSS ───────────────────────────────────────────────────────────────
+st.markdown("""
+    <style>
+        * {
+            font-family: 'Times New Roman', Times, serif !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            font-family: 'Times New Roman', Times, serif !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# ── Sidebar nav ─────────────────────────────────────────────────────────────
+# ── Sidebar branding only ────────────────────────────────────────────────────
 st.sidebar.image("https://img.icons8.com/fluency/96/news.png", width=60)
-st.sidebar.title("C&P Media Contacts")
-st.sidebar.markdown("---")
-
-page = st.sidebar.radio(
-    "Navigate",
-    ["🔍 Browse Contacts", "📋 Build a List", "➕ Add Contact",
-     "⬆️ Import Contacts", "✏️ Manage Contacts"],
-    label_visibility="collapsed",
-)
-
+st.sidebar.title("Boulder")
 st.sidebar.markdown("---")
 st.sidebar.caption("C&P Communications · Media Database")
 
-# ── Route to page ────────────────────────────────────────────────────────────
-if page == "🔍 Browse Contacts":
+# ── Top tab navigation ───────────────────────────────────────────────────────
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🔍 Browse Contacts",
+    "📋 Build a List",
+    "➕ Add Contact",
+    "⬆️ Import Contacts",
+    "✏️ Manage Contacts",
+])
+
+with tab1:
     from pages.browse import show
     show()
-elif page == "📋 Build a List":
+
+with tab2:
     from pages.build_list import show
     show()
-elif page == "➕ Add Contact":
+
+with tab3:
     from pages.add_contact import show
     show()
-elif page == "⬆️ Import Contacts":
+
+with tab4:
     from pages.import_contacts import show
     show()
-elif page == "✏️ Manage Contacts":
+
+with tab5:
     from pages.manage import show
     show()
