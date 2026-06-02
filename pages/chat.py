@@ -5,7 +5,6 @@ import re
 import pandas as pd
 
 def find_contacts_by_name(name, contacts):
-    """Find contacts matching a name (full, first, or last)."""
     name_lower = name.lower().strip()
     name_parts = name_lower.split()
     matched = []
@@ -14,158 +13,167 @@ def find_contacts_by_name(name, contacts):
         ln = (c.get("Contact Last") or "").lower()
         full = f"{fn} {ln}".strip()
         if (name_lower == full or
-            name_lower == fn or
-            name_lower == ln or
             (len(name_parts) == 2 and name_parts[0] == fn and name_parts[1] == ln) or
-            (len(name_parts) == 1 and (name_parts[0] == fn or name_parts[0] == ln))):
+            (len(name_parts) == 1 and name_lower == fn) or
+            (len(name_parts) == 1 and name_lower == ln)):
             matched.append(c)
     return matched
 
+def find_contacts_by_outlet(outlet_name, contacts):
+    o = outlet_name.lower().strip()
+    return [c for c in contacts if o in (c.get("Outlet") or "").lower()]
+
 def parse_request(text, contacts):
-    """Parse request and return (response_text, matched_contacts, show_table, allow_download)"""
     text_lower = text.lower().strip()
 
-    # ── Single contact lookup questions ──────────────────────────────────
-    # "What is X's email/phone/title/outlet?"
-    info_patterns = [
-        (r"what is (.+?)['']s (email|phone|title|outlet|number|website|market|client)", "field_lookup"),
-        (r"what['']s (.+?)['']s (email|phone|title|outlet|number|website|market|client)", "field_lookup"),
-        (r"(.+?)['']s (email|phone|title|outlet|number|website|market|client)", "field_lookup"),
-        (r"(email|phone|title|outlet|number|website) (?:for|of) (.+)", "field_lookup_rev"),
-        (r"find (.+)", "find"),
-        (r"who is (.+)", "find"),
-        (r"look up (.+)", "find"),
-        (r"search for (.+)", "find"),
-        (r"tell me about (.+)", "find"),
-        (r"show me (.+?)['']s (.*)", "field_lookup"),
+    # ── Outlet lookup ─────────────────────────────────────────────────────
+    # "Do we have a contact from X?" / "Do we have contacts at X?"
+    outlet_patterns = [
+        r"contact(?:s)? (?:from|at|with|for) (.+?)(?:\?|$)",
+        r"anyone (?:from|at) (.+?)(?:\?|$)",
+        r"who (?:do we have )?(?:from|at) (.+?)(?:\?|$)",
+        r"contacts? (?:from|at) (.+?)(?:\?|$)",
     ]
+    for pattern in outlet_patterns:
+        m = re.search(pattern, text_lower)
+        if m:
+            outlet_name = m.group(1).strip().rstrip("?").strip()
+            matched = find_contacts_by_outlet(outlet_name, contacts)
+            if not matched:
+                return f"I don't see any contacts from **{outlet_name.title()}** in the database.", [], False, False
+            return f"Found **{len(matched)} contact(s)** from **{outlet_name.title()}**:", matched, True, False
 
+    # ── Single field lookup ───────────────────────────────────────────────
     field_map = {
         "email": "Email", "phone": "Phone", "number": "Phone",
         "title": "Title", "outlet": "Outlet", "website": "Website",
         "market": "Market", "client": "Client(s)",
     }
+    field_pattern = r"(?:what is|what's|get|find|show)(?: me)? (.+?)(?:'s|s') (email|phone|number|title|outlet|website|market|client)"
+    m = re.search(field_pattern, text_lower)
+    if m:
+        name_str = m.group(1).strip()
+        field_str = m.group(2).strip()
+        field = field_map.get(field_str)
+        matched = find_contacts_by_name(name_str, contacts)
+        if not matched:
+            return f"I couldn't find anyone named **{name_str.title()}** in the database.", [], False, False
+        lines = []
+        for c in matched:
+            val = c.get(field, "") or "not on file"
+            name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip() or c.get('Outlet','')
+            lines.append(f"**{name}** ({c.get('Outlet','')}) — {field}: **{val}**")
+        return "\n\n".join(lines), [], False, False
 
-    for pattern, ptype in info_patterns:
+    # Possessive pattern: "Ryan Lynch's email"
+    poss_pattern = r"(.+?)(?:'s|s') (email|phone|number|title|outlet|website)"
+    m = re.search(poss_pattern, text_lower)
+    if m:
+        name_str = m.group(1).strip()
+        field_str = m.group(2).strip()
+        field = field_map.get(field_str)
+        matched = find_contacts_by_name(name_str, contacts)
+        if not matched:
+            return f"I couldn't find anyone named **{name_str.title()}** in the database.", [], False, False
+        lines = []
+        for c in matched:
+            val = c.get(field, "") or "not on file"
+            name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip() or c.get('Outlet','')
+            lines.append(f"**{name}** ({c.get('Outlet','')}) — {field}: **{val}**")
+        return "\n\n".join(lines), [], False, False
+
+    # ── Find/look up a person ─────────────────────────────────────────────
+    find_patterns = [
+        r"(?:find|look up|search for|tell me about|who is|show me) (.+?)(?:\?|$)",
+    ]
+    for pattern in find_patterns:
         m = re.search(pattern, text_lower)
         if m:
-            if ptype == "field_lookup":
-                name_str = m.group(1).strip()
-                field_str = m.group(2).strip()
-                field = field_map.get(field_str, None)
-                matched = find_contacts_by_name(name_str, contacts)
-                if not matched:
-                    return f"I couldn't find anyone named **{name_str.title()}** in the database.", [], False, False
-                if field:
-                    lines = []
-                    for c in matched:
-                        val = c.get(field, "") or "not on file"
-                        name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip() or c.get('Outlet','')
-                        lines.append(f"**{name}** ({c.get('Outlet','')}) — {field}: **{val}**")
-                    return "\n\n".join(lines), matched, False, False
-                else:
-                    return None, matched, True, False
-
-            elif ptype == "field_lookup_rev":
-                field_str = m.group(1).strip()
-                name_str = m.group(2).strip()
-                field = field_map.get(field_str, None)
-                matched = find_contacts_by_name(name_str, contacts)
-                if not matched:
-                    return f"I couldn't find anyone named **{name_str.title()}** in the database.", [], False, False
-                if field:
-                    lines = []
-                    for c in matched:
-                        val = c.get(field, "") or "not on file"
-                        name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip() or c.get('Outlet','')
-                        lines.append(f"**{name}** ({c.get('Outlet','')}) — {field}: **{val}**")
-                    return "\n\n".join(lines), matched, False, False
-
-            elif ptype == "find":
-                name_str = m.group(1).strip()
-                matched = find_contacts_by_name(name_str, contacts)
-                if not matched:
-                    return f"I couldn't find anyone named **{name_str.title()}** in the database.", [], False, False
+            name_str = m.group(1).strip().rstrip("?").strip()
+            matched = find_contacts_by_name(name_str, contacts)
+            if matched:
                 return f"Here's what I found for **{name_str.title()}**:", matched, True, False
+            # Try outlet
+            outlet_matched = find_contacts_by_outlet(name_str, contacts)
+            if outlet_matched:
+                return f"Found **{len(outlet_matched)} contact(s)** at **{name_str.title()}**:", outlet_matched, True, False
+            return f"I couldn't find **{name_str.title()}** in the database.", [], False, False
 
-    # ── How many questions ────────────────────────────────────────────────
+    # ── How many ──────────────────────────────────────────────────────────
     if "how many" in text_lower:
-        # How many contacts for a client?
-        all_clients = set()
-        for c in contacts:
-            for tag in (c.get("Client(s)") or "").split(","):
-                t = tag.strip().lower()
-                if t: all_clients.add(t)
-        for tag in all_clients:
-            if tag in text_lower:
-                count = sum(1 for c in contacts if tag in [t.strip().lower() for t in (c.get("Client(s)") or "").split(",")])
-                return f"There are **{count} contacts** tagged with **{tag.upper()}**.", [], False, False
-        # How many broadcast/radio/etc?
         media_map = {"broadcast": "Broadcast (TV)", "tv": "Broadcast (TV)", "radio": "Radio",
-                     "print": "Print & Online", "newsletter": "Newsletter", "podcast": "Podcast", "trade": "Trade Media"}
+                     "print": "Print & Online", "newsletter": "Newsletter",
+                     "podcast": "Podcast", "trade": "Trade Media"}
         for kw, mt in media_map.items():
             if kw in text_lower:
                 count = sum(1 for c in contacts if c.get("Media Type") == mt)
                 return f"There are **{count} {mt} contacts** in the database.", [], False, False
-        total = len(contacts)
-        return f"There are **{total} total contacts** in the database.", [], False, False
+        # Client — use word boundary matching
+        all_clients = set()
+        for c in contacts:
+            for tag in (c.get("Client(s)") or "").split(","):
+                t = tag.strip()
+                if t: all_clients.add(t)
+        for tag in sorted(all_clients, key=len, reverse=True):
+            if re.search(r'\b' + re.escape(tag.lower()) + r'\b', text_lower):
+                count = sum(1 for c in contacts
+                            if tag in [t.strip() for t in (c.get("Client(s)") or "").split(",")])
+                return f"There are **{count} contacts** tagged with **{tag}**.", [], False, False
+        return f"There are **{len(contacts)} total contacts** in the database.", [], False, False
 
-    # ── List building requests ────────────────────────────────────────────
-    name_triggers = ["build a list with", "build a media list with", "build list with",
-                     "pull", "get me", "create a list", "list with", "list for", "export"]
+    # ── List building ─────────────────────────────────────────────────────
+    list_triggers = ["build a list", "build list", "create a list", "make a list",
+                     "pull all", "get all", "get me all", "export all", "pull contacts", "get contacts"]
+    is_list_request = any(t in text_lower for t in list_triggers)
 
-    # Client filter
+    # Client — word boundary match only
     client_match = None
     all_clients = set()
     for c in contacts:
         for tag in (c.get("Client(s)") or "").split(","):
-            t = tag.strip().lower()
+            t = tag.strip()
             if t: all_clients.add(t)
     for tag in sorted(all_clients, key=len, reverse=True):
-        if tag in text_lower:
+        if re.search(r'\b' + re.escape(tag.lower()) + r'\b', text_lower):
             client_match = tag
             break
 
-    # Media type filter
     media_match = None
     media_map = {"broadcast": "Broadcast (TV)", "tv": "Broadcast (TV)", "television": "Broadcast (TV)",
                  "print": "Print & Online", "online": "Print & Online",
                  "radio": "Radio", "newsletter": "Newsletter", "podcast": "Podcast", "trade": "Trade Media"}
     for keyword, mt in media_map.items():
-        if keyword in text_lower:
+        if re.search(r'\b' + keyword + r'\b', text_lower):
             media_match = mt
             break
 
-    # Market type filter
     market_match = None
     for m in ["local", "regional", "statewide", "national", "international"]:
-        if m in text_lower:
+        if re.search(r'\b' + m + r'\b', text_lower):
             market_match = m.capitalize()
             break
 
-    if client_match or media_match or market_match:
+    if is_list_request and (client_match or media_match or market_match):
         matched = []
         for c in contacts:
-            client_tags = [t.strip().lower() for t in (c.get("Client(s)") or "").split(",")]
+            client_tags = [t.strip() for t in (c.get("Client(s)") or "").split(",")]
             if client_match and client_match not in client_tags: continue
             if media_match and c.get("Media Type") != media_match: continue
             if market_match and c.get("Market Type") != market_match: continue
             matched.append(c)
         if not matched:
-            return "I couldn't find any contacts matching those filters.", [], False, False
+            return "No contacts found matching those filters.", [], False, False
         desc = " ".join(filter(None, [
-            media_match or "",
-            f"contacts for {client_match.upper()}" if client_match else "contacts",
+            media_match or "contacts",
+            f"for {client_match}" if client_match else "",
             f"({market_match})" if market_match else ""
         ]))
         return f"Found **{len(matched)} {desc}**:", matched, True, True
 
-    # Name-based list building
-    if any(t in text_lower for t in name_triggers):
-        clean_text = text
-        for t in sorted(name_triggers, key=len, reverse=True):
-            clean_text = re.sub(t, "", clean_text, flags=re.IGNORECASE)
-        parts = re.split(r',|and|&|\+', clean_text, flags=re.IGNORECASE)
+    # Name-based list
+    if "build a list with" in text_lower or "list with" in text_lower:
+        clean = re.sub(r"build a (?:media )?list with|list with", "", text, flags=re.IGNORECASE)
+        parts = re.split(r',|\band\b|&|\+', clean, flags=re.IGNORECASE)
         potential_names = [p.strip() for p in parts if p.strip()]
         matched = []
         not_found = []
@@ -173,8 +181,7 @@ def parse_request(text, contacts):
             results = find_contacts_by_name(name, contacts)
             if results:
                 for r in results:
-                    if r not in matched:
-                        matched.append(r)
+                    if r not in matched: matched.append(r)
             else:
                 not_found.append(name)
         if not matched:
@@ -185,8 +192,9 @@ def parse_request(text, contacts):
         return msg, matched, True, True
 
     # ── Fallback ──────────────────────────────────────────────────────────
-    return ("I'm not sure how to answer that. Try asking things like:\n\n"
+    return ("I'm not sure how to help with that. Try:\n\n"
             "- *What is Ryan Lynch's email?*\n"
+            "- *Do we have a contact from the Apopka Voice?*\n"
             "- *Build a list with Jane Dyer and Sam Martello*\n"
             "- *Pull all broadcast contacts for FAPIA*\n"
             "- *How many contacts do we have for LifeLink?*"), [], False, False
@@ -199,10 +207,9 @@ def show():
     with col2:
         st.markdown("## What can I help you with?")
         st.markdown(" ")
-
         examples = [
             "What is Ryan Lynch's email?",
-            "Build a list with Jane Dyer and Sam Martello",
+            "Do we have a contact from the Apopka Voice?",
             "Pull all broadcast contacts for FAPIA",
             "How many contacts do we have for LifeLink?",
         ]
@@ -267,12 +274,9 @@ def show():
 
         msg_key = len(st.session_state.bot_messages)
         st.session_state.bot_messages.append({
-            "role": "assistant",
-            "content": response_text,
-            "results": matched,
-            "show_table": show_table,
-            "allow_download": allow_download,
-            "key": msg_key,
+            "role": "assistant", "content": response_text,
+            "results": matched, "show_table": show_table,
+            "allow_download": allow_download, "key": msg_key,
         })
 
     if st.session_state.bot_messages:
