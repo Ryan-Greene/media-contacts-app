@@ -13,53 +13,58 @@ st.markdown("""
         * {
             font-family: 'Calibri', sans-serif !important;
         }
-        .stTabs [data-baseweb="tab"] {
-            font-family: 'Calibri', sans-serif !important;
-        }
-        [data-testid="stSidebar"] {
-            display: none;
-        }
         [data-testid="collapsedControl"] {
             display: none;
+        }
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background-color: #1a1a2e;
+        }
+        [data-testid="stSidebar"] .stRadio label {
+            font-size: 15px;
+            padding: 8px 0;
+            color: #ffffff;
+        }
+        /* Clean up main area top padding */
+        .block-container {
+            padding-top: 2rem;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# ── App header with logo ─────────────────────────────────────────────────────
-col1, col2 = st.columns([2, 8])
-with col1:
-    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png", width=180)
-with col2:
-    st.title("Boulder")
-    st.caption("C&P Communications · Media Database")
+# ── Sidebar navigation ───────────────────────────────────────────────────────
+with st.sidebar:
+    st.image("https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png", width=120)
+    st.markdown("## Boulder")
+    st.caption("C&P Communications")
+    st.markdown("---")
+    page = st.radio("", [
+        "💬 Boulder Bot",
+        "🔍 Browse Contacts",
+        "📋 Build a List",
+        "➕ Add Contact",
+        "⬆️ Import Contacts",
+        "✏️ Manage Contacts",
+    ], label_visibility="collapsed")
+    st.markdown("---")
+    st.caption("Media Database · C&P")
 
-st.markdown("---")
-
-# ── Top tab navigation ───────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🔍 Browse Contacts",
-    "📋 Build a List",
-    "➕ Add Contact",
-    "⬆️ Import Contacts",
-    "✏️ Manage Contacts",
-])
-
-with tab1:
+# ── Route to page ────────────────────────────────────────────────────────────
+if page == "💬 Boulder Bot":
+    from pages.chat import show
+    show()
+elif page == "🔍 Browse Contacts":
     from pages.browse import show
     show()
-
-with tab2:
+elif page == "📋 Build a List":
     from pages.build_list import show
     show()
-
-with tab3:
+elif page == "➕ Add Contact":
     from pages.add_contact import show
     show()
-
-with tab4:
+elif page == "⬆️ Import Contacts":
     from pages.import_contacts import show
     show()
-
-with tab5:
+elif page == "✏️ Manage Contacts":
     from pages.manage import show
     show()
