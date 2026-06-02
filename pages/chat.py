@@ -38,6 +38,7 @@ def parse_request(text, contacts):
         m = re.search(pattern, text_lower)
         if m:
             outlet_name = m.group(1).strip().rstrip("?").strip()
+            outlet_name = re.sub(r"^the\s+", "", outlet_name, flags=re.IGNORECASE)
             matched = find_contacts_by_outlet(outlet_name, contacts)
             if not matched:
                 return f"I don't see any contacts from **{outlet_name.title()}** in the database.", [], False, False
