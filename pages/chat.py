@@ -223,8 +223,8 @@ def show():
         with col2:
             st.markdown("""
                 <div style='text-align: center; margin-bottom: 2rem;'>
-                    <img src='https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png' width='64' style='margin-bottom: 1rem;'/>
-                    <h2 style='font-weight: 600; margin: 0;'>Good morning. How can I help?</h2>
+                    <img src='https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png' width='160' style='margin-bottom: 1.5rem;'/>
+                    <h2 style='font-weight: 600; margin: 0;'>Let's drive past this boulder.</h2>
                 </div>
             """, unsafe_allow_html=True)
             btn_cols = st.columns(2)
