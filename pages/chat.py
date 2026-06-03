@@ -295,7 +295,7 @@ def show():
     st.markdown("---")
 
     # Custom avatar chat display
-    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/boulder_avatar.png"
     CAR_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/car_avatar.png"
 
     st.markdown("""
@@ -311,7 +311,7 @@ def show():
                 margin-bottom: 0.2rem;
             }
             .boulder-row.is-user {
-                flex-direction: row-reverse;
+                flex-direction: row;
             }
             .boulder-avatar {
                 width: 36px;
@@ -332,7 +332,7 @@ def show():
                 font-family: Calibri, sans-serif;
             }
             .is-user .boulder-name {
-                text-align: right;
+                text-align: left;
             }
             .boulder-bubble {
                 display: inline-block;
@@ -353,8 +353,7 @@ def show():
             .boulder-bubble.usr {
                 background: #b03020;
                 color: #fff;
-                border-top-right-radius: 3px;
-                float: right;
+                border-top-left-radius: 3px;
             }
             .boulder-clear { clear: both; }
         </style>
@@ -521,7 +520,7 @@ def show():
                     <div class="boulder-row is-user">
                         <img src="{CAR_AVATAR}" class="boulder-avatar"/>
                         <div class="boulder-content">
-                            <div class="boulder-name" style="text-align:right">You</div>
+                            <div class="boulder-name" style="text-align:left">You</div>
                             <div class="boulder-bubble usr">{safe_input}</div>
                             <div class="boulder-clear"></div>
                         </div>
@@ -541,7 +540,7 @@ def show():
 
                     st.session_state.api_messages.append({"role": "assistant", "content": raw_text})
 
-                    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+                    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/boulder_avatar.png"
                     import html as _html
                     safe_display = _html.escape(display_text).replace("\n", "<br>")
                     st.markdown(f"""
