@@ -294,56 +294,69 @@ def show():
 
     st.markdown("---")
 
-    # Custom styled chat display
+    # Custom avatar chat display
     BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
     CAR_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/car_avatar.png"
 
     st.markdown("""
         <style>
-            .chat-row {
+            .boulder-chat-wrap {
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+            .boulder-row {
                 display: flex;
                 align-items: flex-start;
-                margin-bottom: 1.2rem;
-                gap: 12px;
+                gap: 10px;
+                margin-bottom: 0.2rem;
             }
-            .chat-row.user {
+            .boulder-row.is-user {
                 flex-direction: row-reverse;
             }
-            .chat-avatar {
-                width: 38px;
-                height: 38px;
+            .boulder-avatar {
+                width: 36px;
+                height: 36px;
                 border-radius: 50%;
                 object-fit: cover;
                 flex-shrink: 0;
-                margin-top: 2px;
+                border: 2px solid #333;
             }
-            .chat-bubble {
-                max-width: 75%;
-                padding: 12px 16px;
-                border-radius: 18px;
-                font-family: Calibri, sans-serif;
-                font-size: 15px;
-                line-height: 1.5;
+            .boulder-content {
+                flex: 1;
+                max-width: calc(100% - 50px);
             }
-            .chat-bubble.assistant {
-                background-color: #1e1e2e;
-                color: #e8e8f0;
-                border-top-left-radius: 4px;
-            }
-            .chat-bubble.user {
-                background-color: #c0392b;
-                color: #ffffff;
-                border-top-right-radius: 4px;
-            }
-            .chat-name {
+            .boulder-name {
                 font-size: 11px;
-                color: #888;
-                margin-bottom: 4px;
+                color: #999;
+                margin-bottom: 3px;
                 font-family: Calibri, sans-serif;
             }
-            .chat-row.user .chat-name {
+            .is-user .boulder-name {
                 text-align: right;
             }
+            .boulder-bubble {
+                display: inline-block;
+                padding: 10px 14px;
+                border-radius: 16px;
+                font-family: Calibri, sans-serif;
+                font-size: 15px;
+                line-height: 1.55;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-width: 100%;
+            }
+            .boulder-bubble.bot {
+                background: #1e1e2e;
+                color: #e8e8f0;
+                border-top-left-radius: 3px;
+            }
+            .boulder-bubble.usr {
+                background: #b03020;
+                color: #fff;
+                border-top-right-radius: 3px;
+                float: right;
+            }
+            .boulder-clear { clear: both; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -351,15 +364,21 @@ def show():
         role = msg["role"]
         avatar = BOULDER_AVATAR if role == "assistant" else CAR_AVATAR
         name = "Boulder" if role == "assistant" else "You"
-        bubble_class = "assistant" if role == "assistant" else "user"
-        row_class = "user" if role == "user" else ""
+        bubble_cls = "bot" if role == "assistant" else "usr"
+        row_cls = "is-user" if role == "user" else ""
+        import html
+        safe_content = html.escape(msg["content"]).replace("
+", "<br>")
 
         st.markdown(f"""
-            <div class="chat-row {row_class}">
-                <img src="{avatar}" class="chat-avatar"/>
-                <div>
-                    <div class="chat-name">{name}</div>
-                    <div class="chat-bubble {bubble_class}">{msg["content"]}</div>
+            <div class="boulder-chat-wrap">
+                <div class="boulder-row {row_cls}">
+                    <img src="{avatar}" class="boulder-avatar"/>
+                    <div class="boulder-content">
+                        <div class="boulder-name">{name}</div>
+                        <div class="boulder-bubble {bubble_cls}">{safe_content}</div>
+                        <div class="boulder-clear"></div>
+                    </div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -495,14 +514,18 @@ def show():
             st.session_state.bot_messages.append({"role": "user", "content": user_input})
             st.session_state.api_messages.append({"role": "user", "content": user_input})
 
-            BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
             CAR_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/car_avatar.png"
+            import html as _html
+            safe_input = _html.escape(user_input)
             st.markdown(f"""
-                <div class="chat-row user">
-                    <img src="{CAR_AVATAR}" class="chat-avatar"/>
-                    <div>
-                        <div class="chat-name">You</div>
-                        <div class="chat-bubble user">{user_input}</div>
+                <div class="boulder-chat-wrap">
+                    <div class="boulder-row is-user">
+                        <img src="{CAR_AVATAR}" class="boulder-avatar"/>
+                        <div class="boulder-content">
+                            <div class="boulder-name" style="text-align:right">You</div>
+                            <div class="boulder-bubble usr">{safe_input}</div>
+                            <div class="boulder-clear"></div>
+                        </div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -520,12 +543,16 @@ def show():
                     st.session_state.api_messages.append({"role": "assistant", "content": raw_text})
 
                     BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+                    import html as _html
+                    safe_display = _html.escape(display_text).replace("\n", "<br>")
                     st.markdown(f"""
-                        <div class="chat-row">
-                            <img src="{BOULDER_AVATAR}" class="chat-avatar"/>
-                            <div>
-                                <div class="chat-name">Boulder</div>
-                                <div class="chat-bubble assistant">{display_text}</div>
+                        <div class="boulder-chat-wrap">
+                            <div class="boulder-row">
+                                <img src="{BOULDER_AVATAR}" class="boulder-avatar"/>
+                                <div class="boulder-content">
+                                    <div class="boulder-name">Boulder</div>
+                                    <div class="boulder-bubble bot">{safe_display}</div>
+                                </div>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
