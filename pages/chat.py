@@ -47,7 +47,7 @@ def call_claude(messages, contacts_context=""):
         system += f"\n\nHere is the current contacts database for reference:\n{contacts_context}"
     
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-5",
         "max_tokens": 2000,
         "system": system,
         "tools": [{"type": "web_search_20250305", "name": "web_search"}],
