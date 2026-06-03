@@ -197,11 +197,11 @@ ADD_STEPS = [
     ("firstName",   "What's their first name?"),
     ("lastName",    "What's their last name?"),
     ("title",       "What's their title?"),
-    ("email",       "What's their email? If you don't know, type N/A."),
-    ("phone",       "What's their phone number? If you don't know, type N/A."),
+    ("email",       "What's their email? If you don't know, leave it blank."),
+    ("phone",       "What's their phone number? If you don't know, leave it blank."),
     ("mediaType",   "What type of media is this? (e.g. Print & Online, Broadcast (TV), Radio, Newsletter, Podcast, Trade Media)"),
     ("clients",     "Which client(s) is this contact for? Select all that apply."),
-    ("notes",       "Anything else worth noting before I add this contact? This will go in the Notes section. If nothing, type N/A."),
+    ("notes",       "Anything else worth noting before I add this contact? This will go in the Notes section. If nothing, leave it blank."),
 ]
 
 
@@ -321,7 +321,7 @@ def show():
                 with bcol1:
                     if st.button("✅ Add to Database", type="primary"):
                         email = flow.get("email","").strip()
-                        if not email or email.upper() == "N/A":
+                        if not email:
                             email = ""
                         contact = {
                             "Outlet":        flow.get("outlet",""),
@@ -329,10 +329,10 @@ def show():
                             "Contact Last":  flow.get("lastName",""),
                             "Title":         flow.get("title",""),
                             "Email":         email,
-                            "Phone":         "" if flow.get("phone","").upper() == "N/A" else flow.get("phone",""),
+                            "Phone":         flow.get("phone",""),
                             "Media Type":    flow.get("mediaType","Print & Online"),
                             "Client(s)":     flow.get("clients",""),
-                            "Notes":         "" if flow.get("notes","").upper() == "N/A" else flow.get("notes",""),
+                            "Notes":         flow.get("notes",""),
                         }
                         with st.spinner("Adding to Airtable..."):
                             success, errors = create_contacts([contact])
