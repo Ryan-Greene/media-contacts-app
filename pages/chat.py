@@ -10,50 +10,125 @@ MEDIA_TYPES = ["Print & Online", "Broadcast (TV)", "Radio", "Newsletter", "Podca
 
 SYSTEM_PROMPT = """You are Boulder, a PR assistant for Curley & Pynn, a public relations agency based in Orlando, Florida.
 
-You have access to a media contacts database with 673 journalists and reporters. Your job is to help the team:
-1. Find contacts and answer questions about them
-2. Build targeted media lists
-3. Add new contacts to the database
-4. Write tailored pitches for specific reporters
-5. Research reporters using web search
+You have access to a media contacts database with 673 journalists and reporters. Your job is to help the team with four main tasks: adding contacts, building media lists, finding contact information, and writing tailored pitches.
 
 The database fields are: Outlet, Contact First, Contact Last, Title, Email, Phone, Market Type (Local/Regional/Statewide/National/International), Market, Media Type (Print & Online, Broadcast (TV), Radio, Newsletter, Podcast, Trade Media), Trade Sub, Client(s), Notes, Website.
 
-Clients include: SO (Sarasota Orchestra), FAPIA (Florida Association of Insurance and Professionals), LifeLink (organ donation nonprofit), OIC (OIC Inspired), Beacon College, EA Orlando, and 811 (Sunshine 811).
+Clients:
+- SO = Sarasota Orchestra (classical music, arts, culture)
+- FAPIA = Florida Association of Insurance Professionals (insurance industry)
+- LifeLink = organ and tissue donation nonprofit
+- OIC = OIC Inspired (nonprofit, community services)
+- Beacon College = college serving students with learning disabilities
+- EA Orlando = EA Sports gaming studio in Orlando
+- 811 = Sunshine 811 (call before you dig, utility safety)
 
-When building media lists, think about which contacts would be most relevant based on their beat, outlet, and market.
+---
 
-When writing pitches, always:
-- Reference the reporter's specific beat and recent coverage
-- Keep it concise (3-4 short paragraphs max)
-- Lead with the news hook
-- Explain why this story is relevant to their audience
-- End with a clear call to action
+## ADD A CONTACT
 
-When you need to return structured data (like a list of contacts to display), format it as JSON inside <contacts> tags like this:
-<contacts>[{"Outlet": "...", "Contact First": "...", ...}]</contacts>
+When a user asks to add a contact, follow these steps in order:
 
-When you want to add a contact to the database, format it as JSON inside <add_contact> tags:
+**Step 1 — Gather enough information first**
+Before doing anything, make sure you know who you're adding. If the name is common or ambiguous, ask clarifying questions. At minimum you need the person's full name and outlet before proceeding. Example: "Do you know what outlet or station Joe works at?" Do not skip this step.
+
+**Step 2 — Check Airtable first**
+Search the existing contacts database for that person by name and outlet. If they already exist, tell the user and show them the existing record. Do not proceed with adding them.
+
+**Step 3 — Gather all required fields**
+Before searching for anything online, make sure you have or ask for: outlet, first name, last name, title, media type, and client(s). If any of these are missing, ask the user before proceeding. Do not add an incomplete record.
+
+**Step 4 — Find their contact information**
+Search for their email and phone in this exact order. Move to the next step only if the previous one fails:
+1. Check Airtable (already done in Step 2)
+2. Search the outlet's website for a staff page, team page, "Meet the Team", "Contact Us", or masthead page
+3. Check their social media profiles — especially Facebook, where email is often listed in the About/Contact section. Also check Twitter/X bio and LinkedIn.
+4. Search MuckRack public profiles via Google: search `"[name]" reporter site:muckrack.com`
+5. Search RocketReach public profiles via Google: search `"[name]" journalist site:rocketreach.co`
+6. If still not found — be honest. Tell the user you could not find the contact information. If you found a likely email format used by that outlet, suggest it to the user but DO NOT add it to the database without the user explicitly confirming it is correct. Never guess or make up an email address.
+
+**Step 5 — Confirm before adding**
+Show the user a complete summary of everything you found and ask them to confirm all details are correct before pushing anything to Airtable. Format it clearly so they can review each field.
+
+When ready to add a contact to the database, format the data as JSON inside <add_contact> tags:
 <add_contact>{"Outlet": "...", "Contact First": "...", "Contact Last": "...", "Title": "...", "Email": "...", "Phone": "...", "Media Type": "...", "Client(s)": "...", "Notes": ""}</add_contact>
 
-Always be helpful, professional, and concise. You represent a PR agency so your tone should match."""
+---
+
+## BUILD A MEDIA LIST
+
+When a user asks to build a media list, follow these steps:
+
+**Step 1 — Gather required information**
+Before building anything, ask the user for any of the following that they haven't already provided:
+- What is this pitch or story about?
+- Which client is this for?
+- What type of media are we targeting? (print, broadcast, both, trade, radio, etc.)
+- What market or geography? (local, statewide, national, specific cities or regions?)
+- Any specific beats or types of reporters to look for?
+
+**Step 2 — Ask who to look for**
+Ask the user: "Who should I be looking for at each outlet? For example, a features reporter, arts reporter, health reporter, editor, etc."
+
+When researching, look specifically for that type of contact. If that type of contact does not exist at an outlet, or the person has not published anything in the past month and may no longer be active, tell the user: "I couldn't find an active [contact type] at [outlet]. Who should I look for instead?" Do not assume a fallback — always ask the user before moving on.
+
+**Step 3 — Check Airtable first (Part 1 of the list)**
+Search the existing database for contacts that match the criteria — by client tag, media type, market, and beat or title keywords. Present these to the user as Part 1: contacts already in your database.
+
+**Step 4 — Research new contacts (Part 2 of the list)**
+Go out on the web and find contacts not already in the database that fit the criteria. For each outlet or market the user specifies:
+- Find the appropriate reporter or contact type based on what the user asked for
+- Search the outlet's staff page, masthead, and social media
+- Follow the same contact-finding process as the Add a Contact instructions
+- Be transparent about where you found each contact and how confident you are in the information
+
+**Step 5 — Handle location-based research**
+When the user gives a specific location (e.g. "Aurora, Ohio"), identify:
+- The largest local newspaper serving that area
+- A community paper or hyperlocal publication serving that area
+- Then find the right contact at each outlet using the contact type the user specified
+
+If the user gives multiple locations, work through them one at a time unless they paste a full list, in which case confirm before starting: "I have X locations to research — this may take a few minutes. Should I proceed?"
+
+**Step 6 — Present for review before adding anything**
+Show the user both parts together:
+- Part 1: Contacts already in your database (with a download button)
+- Part 2: Recommended new contacts found on the web (for review only — do not add to Airtable until the user confirms)
+
+Ask the user which new contacts they want added to Airtable before saving anything.
+
+**Step 7 — Output**
+Export the final approved list in the standard Boulder Excel format.
+
+When returning contacts to display, format them as JSON inside <contacts> tags:
+<contacts>[{"Outlet": "...", "Contact First": "...", "Contact Last": "...", "Title": "...", "Email": "...", "Media Type": "...", "Client(s)": "..."}]</contacts>
+
+---
+
+## GENERAL RULES
+
+- Always check Airtable before searching the web. The database is the source of truth.
+- Never make up or guess contact information. If you cannot find it, say so.
+- Always confirm with the user before adding or modifying anything in the database.
+- Be conversational and ask clarifying questions when needed — it is better to ask than to assume.
+- Keep pitch writing concise: 3 paragraphs max, lead with the news hook, reference the reporter's specific recent work, explain why it matters to their audience, end with a clear call to action. Never use words like "exciting" or "thrilled."
+- When writing pitches, use web search to look up the reporter's recent articles and social media before writing.
+"""
 
 def call_claude(messages, contacts_context=""):
-    """Call Claude API with web search enabled."""
     api_key = st.secrets["ANTHROPIC_API_KEY"]
-    
     system = SYSTEM_PROMPT
     if contacts_context:
-        system += f"\n\nHere is the current contacts database for reference:\n{contacts_context}"
-    
+        system += f"\n\n## CURRENT DATABASE\nUse this as your Airtable reference:\n{contacts_context}"
+
     payload = {
         "model": "claude-sonnet-4-5",
-        "max_tokens": 2000,
+        "max_tokens": 4000,
         "system": system,
         "tools": [{"type": "web_search_20250305", "name": "web_search"}],
         "messages": messages
     }
-    
+
     resp = requests.post(
         "https://api.anthropic.com/v1/messages",
         headers={
@@ -62,13 +137,12 @@ def call_claude(messages, contacts_context=""):
             "content-type": "application/json"
         },
         json=payload,
-        timeout=60
+        timeout=90
     )
     resp.raise_for_status()
     return resp.json()
 
 def extract_text(response):
-    """Extract text content from Claude response."""
     text = ""
     for block in response.get("content", []):
         if block.get("type") == "text":
@@ -76,7 +150,6 @@ def extract_text(response):
     return text
 
 def extract_contacts_from_response(text):
-    """Extract contact JSON from response if present."""
     import re
     match = re.search(r'<contacts>(.*?)</contacts>', text, re.DOTALL)
     if match:
@@ -87,7 +160,6 @@ def extract_contacts_from_response(text):
     return None
 
 def extract_add_contact_from_response(text):
-    """Extract add_contact JSON from response if present."""
     import re
     match = re.search(r'<add_contact>(.*?)</add_contact>', text, re.DOTALL)
     if match:
@@ -98,24 +170,25 @@ def extract_add_contact_from_response(text):
     return None
 
 def clean_response_text(text):
-    """Remove XML tags from display text."""
     import re
     text = re.sub(r'<contacts>.*?</contacts>', '', text, flags=re.DOTALL)
     text = re.sub(r'<add_contact>.*?</add_contact>', '', text, flags=re.DOTALL)
     return text.strip()
 
 def build_contacts_context(contacts):
-    """Build a compact summary of contacts for Claude."""
     lines = []
     for c in contacts:
         name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip()
-        lines.append(f"{c.get('Outlet','')} | {name} | {c.get('Title','')} | {c.get('Email','')} | {c.get('Media Type','')} | {c.get('Client(s)','')} | {c.get('Market Type','')}")
+        lines.append(
+            f"{c.get('Outlet','')} | {name} | {c.get('Title','')} | "
+            f"{c.get('Email','')} | {c.get('Media Type','')} | "
+            f"{c.get('Client(s)','')} | {c.get('Market Type','')} | {c.get('Market','')}"
+        )
     return "\n".join(lines)
 
 def show():
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Init session state
     if "bot_messages" not in st.session_state:
         st.session_state.bot_messages = []
     if "api_messages" not in st.session_state:
@@ -128,15 +201,15 @@ def show():
         st.session_state.add_step = 0
 
     ADD_STEPS = [
-        ("outlet",      "What's the reporter's outlet?"),
-        ("firstName",   "What's their first name?"),
-        ("lastName",    "What's their last name?"),
-        ("title",       "What's their title?"),
-        ("email",       "What's their email? If you don't know, leave it blank."),
-        ("phone",       "What's their phone number? If you don't know, leave it blank."),
-        ("mediaType",   "What type of media is this? (e.g. Print & Online, Broadcast (TV), Radio, Newsletter, Podcast, Trade Media)"),
-        ("clients",     "Which client(s) is this contact for? Select all that apply."),
-        ("notes",       "Anything else worth noting? If nothing, leave it blank."),
+        ("outlet",    "What's the reporter's outlet?"),
+        ("firstName", "What's their first name?"),
+        ("lastName",  "What's their last name?"),
+        ("title",     "What's their title?"),
+        ("email",     "What's their email? If you don't know, leave it blank."),
+        ("phone",     "What's their phone number? If you don't know, leave it blank."),
+        ("mediaType", "What type of media is this? (e.g. Print & Online, Broadcast (TV), Radio, Newsletter, Podcast, Trade Media)"),
+        ("clients",   "Which client(s) is this contact for? Select all that apply."),
+        ("notes",     "Anything else worth noting? If nothing, leave it blank."),
     ]
 
     # Home screen
@@ -160,17 +233,20 @@ def show():
                     })
                     st.rerun()
                 if st.button("📋 Build a List", use_container_width=True):
-                    st.session_state.bot_messages.append({"role": "user", "content": "Build a list"})
-                    st.session_state.api_messages.append({"role": "user", "content": "Build a list"})
+                    opener = "I'd like to build a media list."
+                    st.session_state.bot_messages.append({"role": "user", "content": opener})
+                    st.session_state.api_messages.append({"role": "user", "content": opener})
                     st.rerun()
             with btn_cols[1]:
                 if st.button("🔍 Find a Contact", use_container_width=True):
-                    st.session_state.bot_messages.append({"role": "user", "content": "Find a contact"})
-                    st.session_state.api_messages.append({"role": "user", "content": "Find a contact"})
+                    opener = "I need to find a contact."
+                    st.session_state.bot_messages.append({"role": "user", "content": opener})
+                    st.session_state.api_messages.append({"role": "user", "content": opener})
                     st.rerun()
                 if st.button("✍️ Write a Pitch", use_container_width=True):
-                    st.session_state.bot_messages.append({"role": "user", "content": "I need help writing a pitch"})
-                    st.session_state.api_messages.append({"role": "user", "content": "I need help writing a pitch"})
+                    opener = "I need help writing a pitch."
+                    st.session_state.bot_messages.append({"role": "user", "content": opener})
+                    st.session_state.api_messages.append({"role": "user", "content": opener})
                     st.rerun()
 
     st.markdown("---")
@@ -193,11 +269,11 @@ def show():
                     key=f"dl_{msg['key']}"
                 )
 
-    # Pending contact confirmation (from Claude suggestion)
+    # Pending contact confirmation
     if st.session_state.pending_add_contact:
         pc = st.session_state.pending_add_contact
         with st.chat_message("assistant"):
-            st.markdown("Here's what I parsed — does this look right?")
+            st.markdown("Here's what I found — does this look right?")
             col1, col2 = st.columns(2)
             with col1:
                 pc["Contact First"] = st.text_input("First Name", value=pc.get("Contact First",""), key="pc_first")
@@ -205,30 +281,37 @@ def show():
                 pc["Title"]         = st.text_input("Title",       value=pc.get("Title",""),         key="pc_title")
                 pc["Email"]         = st.text_input("Email",       value=pc.get("Email",""),         key="pc_email")
             with col2:
-                pc["Outlet"]      = st.text_input("Outlet",     value=pc.get("Outlet",""),     key="pc_outlet")
-                pc["Phone"]       = st.text_input("Phone",      value=pc.get("Phone",""),      key="pc_phone")
-                pc["Client(s)"]   = st.text_input("Client(s)",  value=pc.get("Client(s)",""),  key="pc_clients")
-                media_opts = MEDIA_TYPES
-                idx = media_opts.index(pc.get("Media Type","Print & Online")) if pc.get("Media Type") in media_opts else 0
-                pc["Media Type"]  = st.selectbox("Media Type", media_opts, index=idx, key="pc_media")
+                pc["Outlet"]     = st.text_input("Outlet",    value=pc.get("Outlet",""),    key="pc_outlet")
+                pc["Phone"]      = st.text_input("Phone",     value=pc.get("Phone",""),     key="pc_phone")
+                pc["Client(s)"]  = st.text_input("Client(s)", value=pc.get("Client(s)",""), key="pc_clients")
+                media_idx = MEDIA_TYPES.index(pc.get("Media Type","Print & Online")) if pc.get("Media Type") in MEDIA_TYPES else 0
+                pc["Media Type"] = st.selectbox("Media Type", MEDIA_TYPES, index=media_idx, key="pc_media")
             bcol1, bcol2 = st.columns(2)
             with bcol1:
-                if st.button("✅ Add to Database", type="primary"):
+                if st.button("✅ Add to Database", type="primary", key="confirm_add"):
                     with st.spinner("Adding..."):
                         success, errors = create_contacts([pc])
                     if success:
                         name = f"{pc.get('Contact First','')} {pc.get('Contact Last','')}".strip() or pc.get('Outlet','')
-                        st.session_state.bot_messages.append({"role": "assistant", "content": f"✅ **{name}** added to the database!", "key": len(st.session_state.bot_messages)})
+                        st.session_state.bot_messages.append({
+                            "role": "assistant",
+                            "content": f"✅ **{name}** has been added to the database!",
+                            "key": len(st.session_state.bot_messages)
+                        })
                         st.session_state.pending_add_contact = None
                         st.cache_data.clear()
                         st.rerun()
             with bcol2:
-                if st.button("❌ Cancel"):
+                if st.button("❌ Cancel", key="cancel_add"):
                     st.session_state.pending_add_contact = None
-                    st.session_state.bot_messages.append({"role": "assistant", "content": "No problem — contact was not added.", "key": len(st.session_state.bot_messages)})
+                    st.session_state.bot_messages.append({
+                        "role": "assistant",
+                        "content": "No problem — contact was not added.",
+                        "key": len(st.session_state.bot_messages)
+                    })
                     st.rerun()
 
-    # Guided Add Contact flow
+    # Guided Add Contact flow (button-triggered only)
     if st.session_state.add_flow is not None:
         step_idx = st.session_state.add_step
         if step_idx < len(ADD_STEPS):
@@ -250,20 +333,20 @@ def show():
                 st.markdown("Here's a summary — does everything look right?")
                 col1, col2 = st.columns(2)
                 with col1:
-                    flow["outlet"]     = st.text_input("Outlet",      value=flow.get("outlet",""),     key="cf_outlet")
-                    flow["firstName"]  = st.text_input("First Name",  value=flow.get("firstName",""),  key="cf_first")
-                    flow["lastName"]   = st.text_input("Last Name",   value=flow.get("lastName",""),   key="cf_last")
-                    flow["title"]      = st.text_input("Title",       value=flow.get("title",""),      key="cf_title")
-                    flow["email"]      = st.text_input("Email",       value=flow.get("email",""),      key="cf_email")
+                    flow["outlet"]    = st.text_input("Outlet",     value=flow.get("outlet",""),    key="cf_outlet")
+                    flow["firstName"] = st.text_input("First Name", value=flow.get("firstName",""), key="cf_first")
+                    flow["lastName"]  = st.text_input("Last Name",  value=flow.get("lastName",""),  key="cf_last")
+                    flow["title"]     = st.text_input("Title",      value=flow.get("title",""),     key="cf_title")
+                    flow["email"]     = st.text_input("Email",      value=flow.get("email",""),     key="cf_email")
                 with col2:
-                    flow["phone"]      = st.text_input("Phone",       value=flow.get("phone",""),      key="cf_phone")
-                    flow["clients"]    = st.text_input("Client(s)",   value=flow.get("clients",""),    key="cf_clients")
-                    flow["notes"]      = st.text_area("Notes",        value=flow.get("notes",""),      key="cf_notes", height=80)
+                    flow["phone"]    = st.text_input("Phone",     value=flow.get("phone",""),    key="cf_phone")
+                    flow["clients"]  = st.text_input("Client(s)", value=flow.get("clients",""),  key="cf_clients")
+                    flow["notes"]    = st.text_area("Notes",      value=flow.get("notes",""),    key="cf_notes", height=80)
                     media_idx = MEDIA_TYPES.index(flow.get("mediaType","Print & Online")) if flow.get("mediaType") in MEDIA_TYPES else 0
-                    flow["mediaType"]  = st.selectbox("Media Type",   MEDIA_TYPES, index=media_idx,   key="cf_media")
+                    flow["mediaType"] = st.selectbox("Media Type", MEDIA_TYPES, index=media_idx, key="cf_media")
                 bcol1, bcol2 = st.columns(2)
                 with bcol1:
-                    if st.button("✅ Add to Database", type="primary"):
+                    if st.button("✅ Add to Database", type="primary", key="flow_confirm"):
                         contact = {
                             "Outlet":        flow.get("outlet",""),
                             "Contact First": flow.get("firstName",""),
@@ -279,36 +362,27 @@ def show():
                             success, errors = create_contacts([contact])
                         if success:
                             name = f"{flow.get('firstName','')} {flow.get('lastName','')}".strip() or flow.get('outlet','')
-                            st.session_state.bot_messages.append({"role": "assistant", "content": f"✅ **{name}** from **{flow.get('outlet','')}** added!", "key": len(st.session_state.bot_messages)})
+                            st.session_state.bot_messages.append({
+                                "role": "assistant",
+                                "content": f"✅ **{name}** from **{flow.get('outlet','')}** has been added!",
+                                "key": len(st.session_state.bot_messages)
+                            })
                             st.session_state.add_flow = None
                             st.session_state.add_step = 0
                             st.cache_data.clear()
                             st.rerun()
                 with bcol2:
-                    if st.button("❌ Cancel"):
+                    if st.button("❌ Cancel", key="flow_cancel"):
                         st.session_state.bot_messages.append({"role": "assistant", "content": "No problem — contact was not added."})
                         st.session_state.add_flow = None
                         st.session_state.add_step = 0
                         st.rerun()
 
-    # Chat input
-    user_input = st.chat_input("Ask anything — find contacts, build lists, write pitches...")
+    # Chat input — only active when not in guided flow
+    if st.session_state.add_flow is None and st.session_state.pending_add_contact is None:
+        user_input = st.chat_input("Ask anything — find contacts, build lists, write pitches...")
 
-    if user_input:
-        # Handle guided flow text steps
-        if st.session_state.add_flow is not None and st.session_state.add_step < len(ADD_STEPS):
-            field_key, _ = ADD_STEPS[st.session_state.add_step]
-            if field_key != "clients":
-                st.session_state.add_flow[field_key] = user_input
-                st.session_state.bot_messages.append({"role": "user", "content": user_input})
-                st.session_state.add_step += 1
-                if st.session_state.add_step < len(ADD_STEPS):
-                    st.session_state.bot_messages.append({"role": "assistant", "content": ADD_STEPS[st.session_state.add_step][1]})
-                else:
-                    st.session_state.bot_messages.append({"role": "assistant", "content": "Almost done! Review the details below and confirm."})
-                st.rerun()
-        else:
-            # Normal Claude API chat
+        if user_input:
             st.session_state.bot_messages.append({"role": "user", "content": user_input})
             st.session_state.api_messages.append({"role": "user", "content": user_input})
 
@@ -325,7 +399,6 @@ def show():
                     extracted_contacts = extract_contacts_from_response(raw_text)
                     add_contact_data = extract_add_contact_from_response(raw_text)
 
-                    # Add assistant response to API history
                     st.session_state.api_messages.append({"role": "assistant", "content": raw_text})
 
                     with st.chat_message("assistant"):
@@ -334,8 +407,8 @@ def show():
                             COLS = ["Outlet","Contact First","Contact Last","Title","Email","Phone","Media Type","Client(s)"]
                             rows = [{c: contact.get(c,"") or "" for c in COLS} for contact in extracted_contacts]
                             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=300)
-                            excel_bytes = build_excel(extracted_contacts, "Boulder List")
                             msg_key = len(st.session_state.bot_messages)
+                            excel_bytes = build_excel(extracted_contacts, "Boulder List")
                             st.download_button(
                                 label="⬇️ Download as Excel",
                                 data=excel_bytes,
@@ -359,7 +432,7 @@ def show():
 
                 except Exception as e:
                     error_msg = f"Something went wrong: {str(e)}"
-                    st.session_state.bot_messages.append({"role": "assistant", "content": error_msg})
+                    st.session_state.bot_messages.append({"role": "assistant", "content": error_msg, "key": len(st.session_state.bot_messages)})
                     with st.chat_message("assistant"):
                         st.markdown(error_msg)
 
