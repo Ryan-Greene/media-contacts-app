@@ -294,23 +294,89 @@ def show():
 
     st.markdown("---")
 
-    # Display chat history
+    # Custom styled chat display
+    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+    CAR_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/car_avatar.png"
+
+    st.markdown("""
+        <style>
+            .chat-row {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 1.2rem;
+                gap: 12px;
+            }
+            .chat-row.user {
+                flex-direction: row-reverse;
+            }
+            .chat-avatar {
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                object-fit: cover;
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+            .chat-bubble {
+                max-width: 75%;
+                padding: 12px 16px;
+                border-radius: 18px;
+                font-family: Calibri, sans-serif;
+                font-size: 15px;
+                line-height: 1.5;
+            }
+            .chat-bubble.assistant {
+                background-color: #1e1e2e;
+                color: #e8e8f0;
+                border-top-left-radius: 4px;
+            }
+            .chat-bubble.user {
+                background-color: #c0392b;
+                color: #ffffff;
+                border-top-right-radius: 4px;
+            }
+            .chat-name {
+                font-size: 11px;
+                color: #888;
+                margin-bottom: 4px;
+                font-family: Calibri, sans-serif;
+            }
+            .chat-row.user .chat-name {
+                text-align: right;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     for msg in st.session_state.bot_messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg.get("results"):
-                COLS = ["Outlet","Contact First","Contact Last","Title","Email","Phone","Media Type","Client(s)"]
-                rows = [{c: contact.get(c,"") or "" for c in COLS} for contact in msg["results"]]
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=300)
-            if msg.get("allow_download") and msg.get("results"):
-                excel_bytes = build_excel(msg["results"], "Boulder List")
-                st.download_button(
-                    label="⬇️ Download as Excel",
-                    data=excel_bytes,
-                    file_name="boulder_list.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"dl_{msg['key']}"
-                )
+        role = msg["role"]
+        avatar = BOULDER_AVATAR if role == "assistant" else CAR_AVATAR
+        name = "Boulder" if role == "assistant" else "You"
+        bubble_class = "assistant" if role == "assistant" else "user"
+        row_class = "user" if role == "user" else ""
+
+        st.markdown(f"""
+            <div class="chat-row {row_class}">
+                <img src="{avatar}" class="chat-avatar"/>
+                <div>
+                    <div class="chat-name">{name}</div>
+                    <div class="chat-bubble {bubble_class}">{msg["content"]}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        if msg.get("results"):
+            COLS = ["Outlet","Contact First","Contact Last","Title","Email","Phone","Media Type","Client(s)"]
+            rows = [{c: contact.get(c,"") or "" for c in COLS} for contact in msg["results"]]
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=300)
+        if msg.get("allow_download") and msg.get("results"):
+            excel_bytes = build_excel(msg["results"], "Boulder List")
+            st.download_button(
+                label="⬇️ Download as Excel",
+                data=excel_bytes,
+                file_name="boulder_list.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"dl_{msg['key']}"
+            )
 
     # Pending contact confirmation
     if st.session_state.pending_add_contact:
@@ -429,8 +495,17 @@ def show():
             st.session_state.bot_messages.append({"role": "user", "content": user_input})
             st.session_state.api_messages.append({"role": "user", "content": user_input})
 
-            with st.chat_message("user"):
-                st.markdown(user_input)
+            BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+            CAR_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/car_avatar.png"
+            st.markdown(f"""
+                <div class="chat-row user">
+                    <img src="{CAR_AVATAR}" class="chat-avatar"/>
+                    <div>
+                        <div class="chat-name">You</div>
+                        <div class="chat-bubble user">{user_input}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
             with st.spinner("Thinking..."):
                 try:
@@ -444,21 +519,29 @@ def show():
 
                     st.session_state.api_messages.append({"role": "assistant", "content": raw_text})
 
-                    with st.chat_message("assistant"):
-                        st.markdown(display_text)
-                        if extracted_contacts:
-                            COLS = ["Outlet","Contact First","Contact Last","Title","Email","Phone","Media Type","Client(s)"]
-                            rows = [{c: contact.get(c,"") or "" for c in COLS} for contact in extracted_contacts]
-                            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=300)
-                            msg_key = len(st.session_state.bot_messages)
-                            excel_bytes = build_excel(extracted_contacts, "Boulder List")
-                            st.download_button(
-                                label="⬇️ Download as Excel",
-                                data=excel_bytes,
-                                file_name="boulder_list.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key=f"dl_{msg_key}"
-                            )
+                    BOULDER_AVATAR = "https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png"
+                    st.markdown(f"""
+                        <div class="chat-row">
+                            <img src="{BOULDER_AVATAR}" class="chat-avatar"/>
+                            <div>
+                                <div class="chat-name">Boulder</div>
+                                <div class="chat-bubble assistant">{display_text}</div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if extracted_contacts:
+                        COLS = ["Outlet","Contact First","Contact Last","Title","Email","Phone","Media Type","Client(s)"]
+                        rows = [{c: contact.get(c,"") or "" for c in COLS} for contact in extracted_contacts]
+                        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=300)
+                        msg_key = len(st.session_state.bot_messages)
+                        excel_bytes = build_excel(extracted_contacts, "Boulder List")
+                        st.download_button(
+                            label="⬇️ Download as Excel",
+                            data=excel_bytes,
+                            file_name="boulder_list.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"dl_{msg_key}"
+                        )
 
                     pitch_history_data = extract_pitch_history_from_response(raw_text)
                     if add_contact_data:
