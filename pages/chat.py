@@ -367,8 +367,7 @@ def show():
         bubble_cls = "bot" if role == "assistant" else "usr"
         row_cls = "is-user" if role == "user" else ""
         import html
-        safe_content = html.escape(msg["content"]).replace("
-", "<br>")
+        safe_content = html.escape(msg["content"]).replace("\n", "<br>")
 
         st.markdown(f"""
             <div class="boulder-chat-wrap">
