@@ -218,10 +218,15 @@ def show():
 
     # ── Home screen buttons ───────────────────────────────────────────────
     if not st.session_state.bot_messages and not st.session_state.add_flow:
-        col1, col2, col3 = st.columns([1, 4, 1])
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 3, 1])
         with col2:
-            st.markdown("## What can I help you with?")
-            st.markdown(" ")
+            st.markdown("""
+                <div style='text-align: center; margin-bottom: 2rem;'>
+                    <img src='https://raw.githubusercontent.com/Ryan-Greene/media-contacts-app/main/c%26pboulder.png' width='64' style='margin-bottom: 1rem;'/>
+                    <h2 style='font-weight: 600; margin: 0;'>Good morning. How can I help?</h2>
+                </div>
+            """, unsafe_allow_html=True)
             btn_cols = st.columns(2)
             with btn_cols[0]:
                 if st.button("➕ Add Contact", use_container_width=True, type="primary"):
