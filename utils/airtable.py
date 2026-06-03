@@ -1,6 +1,7 @@
 import requests
 import streamlit as st
 import time
+from datetime import date
 
 BASE_ID    = "app61cj6oJd2TneR6"
 TABLE_NAME = "Contacts"
@@ -15,7 +16,6 @@ def _headers():
 
 @st.cache_data(ttl=60)
 def get_all_contacts():
-    """Fetch all records from Airtable, handling pagination."""
     records = []
     params  = {"pageSize": 100}
     while True:
@@ -27,7 +27,6 @@ def get_all_contacts():
         if not offset:
             break
         params["offset"] = offset
-    # Flatten to list of dicts with an added 'id' key
     contacts = []
     for r in records:
         c = r.get("fields", {})
@@ -36,7 +35,6 @@ def get_all_contacts():
     return contacts
 
 def create_contacts(contacts: list[dict]):
-    """Push a list of contact dicts to Airtable in batches of 10."""
     batches = [contacts[i:i+10] for i in range(0, len(contacts), 10)]
     success = 0
     errors  = []
@@ -52,7 +50,6 @@ def create_contacts(contacts: list[dict]):
     return success, errors
 
 def update_contact(record_id: str, fields: dict):
-    """Update a single record."""
     resp = requests.patch(
         f"{API_URL}/{record_id}",
         headers=_headers(),
@@ -62,7 +59,30 @@ def update_contact(record_id: str, fields: dict):
     return resp.json()
 
 def delete_contact(record_id: str):
-    """Delete a single record."""
     resp = requests.delete(f"{API_URL}/{record_id}", headers=_headers())
     resp.raise_for_status()
     return resp.json()
+
+def append_pitch_history(record_id: str, entry: str, existing_history: str = ""):
+    """Append a new pitch history entry to a contact's Pitch History field."""
+    today = date.today().strftime("%-m/%-d/%y")
+    new_entry = f"{today} — {entry}"
+    updated = existing_history.strip() + "\n" + new_entry if existing_history else new_entry
+    return update_contact(record_id, {"Pitch History": updated})
+
+def find_contact_by_name(first_name: str, last_name: str, outlet: str = ""):
+    """Find a contact by name and optionally outlet."""
+    contacts = get_all_contacts()
+    fn = first_name.lower().strip()
+    ln = last_name.lower().strip()
+    matches = []
+    for c in contacts:
+        cfn = (c.get("Contact First") or "").lower()
+        cln = (c.get("Contact Last") or "").lower()
+        if cfn == fn and cln == ln:
+            if outlet:
+                if outlet.lower() in (c.get("Outlet") or "").lower():
+                    matches.append(c)
+            else:
+                matches.append(c)
+    return matches
