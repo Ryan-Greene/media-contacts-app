@@ -265,32 +265,23 @@ def show():
                     <h2 style='font-weight: 600; margin: 0;'>Let's drive past this boulder.</h2>
                 </div>
             """, unsafe_allow_html=True)
-            btn_cols = st.columns(2)
-            with btn_cols[0]:
-                if st.button("➕ Add Contact", use_container_width=True, type="primary"):
-                    st.session_state.add_flow = {}
-                    st.session_state.add_step = 0
-                    st.session_state.bot_messages.append({
-                        "role": "assistant",
-                        "content": "Let's add a new contact! 🎉\n\n" + ADD_STEPS[0][1]
-                    })
-                    st.rerun()
-                if st.button("📋 Build a List", use_container_width=True):
-                    opener = "I'd like to build a media list."
-                    st.session_state.bot_messages.append({"role": "user", "content": opener})
-                    st.session_state.api_messages.append({"role": "user", "content": opener})
-                    st.rerun()
-            with btn_cols[1]:
-                if st.button("🔍 Find a Contact", use_container_width=True):
-                    opener = "I need to find a contact."
-                    st.session_state.bot_messages.append({"role": "user", "content": opener})
-                    st.session_state.api_messages.append({"role": "user", "content": opener})
-                    st.rerun()
-                if st.button("✍️ Write a Pitch", use_container_width=True):
-                    opener = "I need help writing a pitch."
-                    st.session_state.bot_messages.append({"role": "user", "content": opener})
-                    st.session_state.api_messages.append({"role": "user", "content": opener})
-                    st.rerun()
+            examples = [
+                "Add a new contact to the database",
+                "Build a media list for the Sarasota Orchestra",
+                "What is Ryan Lynch's email?",
+                "Write a pitch for LifeLink to Orlando health reporters",
+                "Do we have any contacts from the Tampa Bay Times?",
+                "Log that I secured coverage from Jane Dyer for FAPIA",
+            ]
+            st.markdown("<div style='height: 8px'></div>", unsafe_allow_html=True)
+            chip_cols = st.columns(2)
+            for i, ex in enumerate(examples):
+                with chip_cols[i % 2]:
+                    if st.button(ex, use_container_width=True, key=f"chip_{i}",
+                                 type="primary" if i == 0 else "secondary"):
+                        st.session_state.bot_messages.append({"role": "user", "content": ex})
+                        st.session_state.api_messages.append({"role": "user", "content": ex})
+                        st.rerun()
 
     st.markdown("---")
 
