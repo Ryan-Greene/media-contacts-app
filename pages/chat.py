@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import json
-from utils.airtable import get_all_contacts, create_contacts
+from utils.airtable import get_all_contacts, create_contacts, append_pitch_history, find_contact_by_name
 from utils.excel import build_excel
 import pandas as pd
 
@@ -105,6 +105,27 @@ When returning contacts to display, format them as JSON inside <contacts> tags:
 
 ---
 
+## LOG PITCH HISTORY
+
+When a user mentions a pitch outcome in a conversational way — for example "Hey, it's Ryan Greene, I secured a few live broadcast hits from Lauren Margolis when I pitched her for IAAPA Expo 2025" — do the following:
+
+1. Identify the reporter's name from the message
+2. Identify the outcome (covered, passed, no response, interview secured, etc.)
+3. Identify the client or campaign if mentioned
+4. Identify who is logging it (their name or initials from the message)
+5. Format the log entry as: "[initials] [outcome] for [client/campaign]"
+   Example: "RG secured multiple live broadcast hits for IAAPA"
+6. Find the reporter in the database by name
+7. If found, confirm with the user: "I'll log this to Lauren Margolis's Pitch History: [date] — [entry]. Does that look right?"
+8. If confirmed, call append_pitch_history to update the record
+9. If the reporter is not found in the database, let the user know
+
+Format the log to be concise — one sentence max. Use the person's initials, not their full name.
+
+When a tag like <log_pitch_history> appears in your reasoning, extract: reporter_first, reporter_last, entry text, and record_id if known.
+To trigger a pitch history update, output JSON inside <log_pitch_history> tags:
+<log_pitch_history>{"record_id": "...", "entry": "...", "existing_history": "..."}</log_pitch_history>
+
 ## GENERAL RULES
 
 - Always check Airtable before searching the web. The database is the source of truth.
@@ -129,16 +150,24 @@ def call_claude(messages, contacts_context=""):
         "messages": messages
     }
 
-    resp = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        },
-        json=payload,
-        timeout=90
-    )
+    import time
+    for attempt in range(3):
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            },
+            json=payload,
+            timeout=90
+        )
+        if resp.status_code == 429:
+            wait = 20 * (attempt + 1)
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
     resp.raise_for_status()
     return resp.json()
 
@@ -169,20 +198,34 @@ def extract_add_contact_from_response(text):
             return None
     return None
 
+def extract_pitch_history_from_response(text):
+    import re
+    match = re.search(r'<log_pitch_history>(.*?)</log_pitch_history>', text, re.DOTALL)
+    if match:
+        try:
+            import json
+            return json.loads(match.group(1))
+        except:
+            return None
+    return None
+
 def clean_response_text(text):
     import re
     text = re.sub(r'<contacts>.*?</contacts>', '', text, flags=re.DOTALL)
     text = re.sub(r'<add_contact>.*?</add_contact>', '', text, flags=re.DOTALL)
+    text = re.sub(r'<log_pitch_history>.*?</log_pitch_history>', '', text, flags=re.DOTALL)
     return text.strip()
 
 def build_contacts_context(contacts):
     lines = []
     for c in contacts:
         name = f"{c.get('Contact First','')} {c.get('Contact Last','')}".strip()
+        pitch_history = c.get('Pitch History', '') or ''
+        ph_str = f" | PITCH HISTORY: {pitch_history}" if pitch_history else ""
         lines.append(
-            f"{c.get('Outlet','')} | {name} | {c.get('Title','')} | "
+            f"{c.get('_id','')} | {c.get('Outlet','')} | {name} | {c.get('Title','')} | "
             f"{c.get('Email','')} | {c.get('Media Type','')} | "
-            f"{c.get('Client(s)','')} | {c.get('Market Type','')} | {c.get('Market','')}"
+            f"{c.get('Client(s)','')} | {c.get('Market Type','')} | {c.get('Market','')}{ph_str}"
         )
     return "\n".join(lines)
 
@@ -417,8 +460,19 @@ def show():
                                 key=f"dl_{msg_key}"
                             )
 
+                    pitch_history_data = extract_pitch_history_from_response(raw_text)
                     if add_contact_data:
                         st.session_state.pending_add_contact = add_contact_data
+                    if pitch_history_data:
+                        try:
+                            record_id = pitch_history_data.get("record_id", "")
+                            entry = pitch_history_data.get("entry", "")
+                            existing = pitch_history_data.get("existing_history", "")
+                            if record_id and entry:
+                                append_pitch_history(record_id, entry, existing)
+                                st.cache_data.clear()
+                        except Exception as ph_err:
+                            st.warning(f"Could not update pitch history: {ph_err}")
 
                     msg_key = len(st.session_state.bot_messages)
                     st.session_state.bot_messages.append({
